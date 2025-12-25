@@ -24,7 +24,31 @@ nix run github:yunusey/hsnow
 * `libGLU`
 * `egl-wayland`
 * `libxkbcommon`
-* `xxd` (required only when compiling from source; not needed when running the binary—see [Shaders](#shaders))
+* `xxd` (required only when compiling from source; not needed when running the binary--see [Shaders](#shaders))
+
+## Configuration
+
+To override the defaults, you need to paste the following content to `$XDG_CONFIG_HOME/hsnow/config`:
+
+```conf
+# Non-negative integer controlling the number of layers
+num_layers = 33
+
+# The depth of layers
+depth = 1.5
+
+# The speed of, well, the snow :D
+speed = 0.4
+
+# The wideness of individual snow flakes
+width = 0.6
+
+# The alpha channel of the overall shader; applied to the final color
+alpha = 0.1
+
+# Available values are `background`, `bottom`, `overlay`, and `top`
+surface_layer = top
+```
 
 ## Shaders
 
@@ -39,8 +63,7 @@ Currently, `hsnow` does not support loading shaders at runtime—but this is a f
 
 ## Roadmap
 
-* [ ] X11 support
-* [ ] Support for ALSA, FIFO, and other Linux audio backends
+* [ ] X11 support?
 * [ ] Mouse and keyboard interactions
 * [ ] Multi-monitor support
 

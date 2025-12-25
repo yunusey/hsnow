@@ -143,7 +143,7 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_handle_global_remove,
 };
 
-bool init_platform(void)
+bool init_platform(const AppConfig *config)
 {
     const EGLint framebufferAttribs[] = {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8,
@@ -192,8 +192,28 @@ bool init_platform(void)
         return -1;
     }
 
-    platform.layer_surface = zwlr_layer_shell_v1_get_layer_surface(platform.layer_shell, platform.surface, NULL,
-                                                                   ZWLR_LAYER_SHELL_V1_LAYER_TOP, "wayland_app");
+    enum zwlr_layer_shell_v1_layer layer;
+    switch (config->surface_layer)
+    {
+    case SURFACE_LAYER_BACKGROUND:
+        layer = ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+        break;
+    case SURFACE_LAYER_BOTTOM:
+        layer = ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
+        break;
+    case SURFACE_LAYER_TOP:
+        layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP;
+        ;
+        break;
+    case SURFACE_LAYER_OVERLAY:
+        layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;
+        break;
+    default:
+        layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP;
+        break;
+    }
+    platform.layer_surface =
+        zwlr_layer_shell_v1_get_layer_surface(platform.layer_shell, platform.surface, NULL, layer, "wayland_app");
 
     zwlr_layer_surface_v1_set_size(platform.layer_surface, 0, 0);
     zwlr_layer_surface_v1_set_anchor(platform.layer_surface,

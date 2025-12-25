@@ -3,11 +3,12 @@
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-#include <stdint.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <wayland-egl.h>
 #include <xkbcommon/xkbcommon.h>
+
+#include "config.h"
 
 #define NUM_CURSORS 11
 #define MAX_MONITORS 4
@@ -59,7 +60,7 @@ typedef struct CoreData
 extern PlatformData platform;
 extern CoreData core;
 
-bool init_platform(void);
+bool init_platform(const AppConfig *config);
 void begin_drawing(void);
 void end_drawing(void);
 void poll_input_events(void);
