@@ -18,7 +18,17 @@ float get_monotonic_time()
 
 int main(int argc, char **argv)
 {
-    init_platform();
+    const char *config_path = get_config_path();
+    if (config_path)
+    {
+        load_config(&config, config_path);
+    }
+    else
+    {
+        printf("Warning: Could not determine config path, using defaults.\n");
+    }
+
+    init_platform(&config);
 
     char *vertex_source = (char *)shaders_snow_vert;
     GLint vertex_len = (GLint)shaders_snow_vert_len;
@@ -31,13 +41,25 @@ int main(int argc, char **argv)
     float projection_matrix[16];
     construct_projection_matrix(projection_matrix, 0.0f, (float)core.window_size.width, 0.0f,
                                 (float)core.window_size.height, -1.0f, 1.0f);
+
+    // Set uniform values
     GLint proj_location = glGetUniformLocation(shader_program, "u_projection");
     glUniformMatrix4fv(proj_location, 1, GL_FALSE, projection_matrix);
-
     GLint viewport_location = glGetUniformLocation(shader_program, "u_viewport");
     glUniform2f(viewport_location, (float)core.window_size.width, (float)core.window_size.height);
-
     GLint time_location = glGetUniformLocation(shader_program, "u_time");
+
+    // Set configuration uniforms
+    GLint num_layers_location = glGetUniformLocation(shader_program, "c_num_layers");
+    glUniform1ui(num_layers_location, (GLuint)config.num_layers);
+    GLint depth_location = glGetUniformLocation(shader_program, "c_depth");
+    glUniform1f(depth_location, config.depth);
+    GLint width_location = glGetUniformLocation(shader_program, "c_width");
+    glUniform1f(width_location, config.width);
+    GLint speed_location = glGetUniformLocation(shader_program, "c_speed");
+    glUniform1f(speed_location, config.speed);
+    GLint alpha_location = glGetUniformLocation(shader_program, "c_alpha");
+    glUniform1f(alpha_location, config.alpha);
 
     const float frame_time = 1.0f / TARGET_FPS;
     const float start_time = get_monotonic_time();

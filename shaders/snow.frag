@@ -11,20 +11,15 @@ precision highp float;
 
 #define PI 3.14159265358979323846
 
-#define LAYERS 36
+// Configuration parameters (hence the `c_` prefix)
+uniform uint c_num_layers;
+uniform float c_depth;
+uniform float c_width;
+uniform float c_speed;
+uniform float c_alpha;
 
-#define DEPTH1 0.3
-#define WIDTH1 0.4
-#define SPEED1 0.2
-
-#define DEPTH2 0.1
-#define WIDTH2 0.3
-#define SPEED2 0.1
-
-
-uniform vec2  u_viewport;
+uniform vec2 u_viewport;
 uniform float u_time;
-uniform vec2  u_mouse;
 
 out vec4 fragColor;
 
@@ -100,28 +95,6 @@ float fbm(vec2 p)
     return f;
 }
 
-float background(vec2 uv)
-{
-    uv.x += u_mouse.x / u_viewport.x - 1.0;
-
-    vec2 sunCenter = vec2(0.3, 0.9);
-    float suns  = clamp(1.2 - distance(uv, sunCenter), 0.0, 1.0);
-    float sunsh = smoothstep(0.85, 0.95, suns);
-
-    float slope = 1.0 - smoothstep(
-        0.55, 0.0,
-        0.8 + uv.x - 2.3 * uv.y
-    );
-
-    float noise = abs(fbm(uv * 1.5));
-    slope = (noise * 0.2)
-          + (slope - ((1.0 - noise) * slope * 0.1)) * 0.6;
-
-    slope = clamp(slope, 0.0, 1.0);
-
-    return 0.35 + slope * (suns + 0.3) + sunsh * 0.6;
-}
-
 float snowing(vec2 uv)
 {
     const mat3 p = mat3(
@@ -130,28 +103,20 @@ float snowing(vec2 uv)
         21.8112,   14.7212,  61.3934
     );
 
-    vec2 mp = u_mouse / u_viewport;
-    uv.x += mp.x * 4.0;
-    mp.y *= 0.25;
-
-    float depth = smoothstep(DEPTH1, DEPTH2, mp.y);
-    float width = smoothstep(WIDTH1, WIDTH2, mp.y);
-    float speed = smoothstep(SPEED1, SPEED2, mp.y);
-
     float acc = 0.0;
     float dof = 5.0 * sin(u_time * 0.1);
 
-    for (int i = 0; i < LAYERS; i++)
+    for (uint i = 0u; i < c_num_layers; i++)
     {
         float fi = float(i);
-        vec2 q = uv * (1.0 + fi * depth);
+        vec2 q = uv * (1.0 + fi * c_depth);
 
-        float w = width * mod(fi * 7.238917, 1.0)
-                - width * 0.1 * sin(u_time * 2.0 + fi);
+        float w = c_width * mod(fi * 7.238917, 1.0)
+                - c_width * 0.1 * sin(u_time * 2.0 + fi);
 
         q += vec2(
             q.y * w,
-            speed * u_time / (1.0 + fi * depth * 0.03)
+            c_speed * u_time / (1.0 + fi * c_depth * 0.03)
         );
 
         vec3 n = vec3(floor(q), 31.189 + fi);
@@ -167,7 +132,7 @@ float snowing(vec2 uv)
         float edge = 0.05 + 0.05 * min(0.5 * abs(fi - 5.0 - dof), 1.0);
 
         acc += smoothstep(edge, -edge, d)
-             * (r.x / (1.0 + 0.02 * fi * depth));
+             * (r.x / (1.0 + 0.02 * fi * c_depth));
     }
 
     return acc;
@@ -178,11 +143,9 @@ void main()
     vec2 uv = gl_FragCoord.xy / u_viewport.y;
 
     vec3 color = vec3(0.0);
-    // float bg = background(uv);
-    // color = vec3(bg * 0.9, bg, bg * 1.1);
 
     float snow = snowing(uv);
     color += vec3(snow);
 
-    fragColor = vec4(color, 0.1);
+    fragColor = vec4(color, c_alpha);
 }
