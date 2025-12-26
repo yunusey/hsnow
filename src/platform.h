@@ -49,7 +49,11 @@ typedef struct
 
 typedef struct CoreData
 {
-    struct window_size
+    struct
+    {
+        bool should_close;
+    } state;
+    struct
     {
         int width;
         int height;

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <time.h>
 #include <unistd.h>
@@ -7,7 +8,24 @@
 #include "platform.h"
 #include "shader.h"
 
-#define TARGET_FPS 30
+#define TARGET_FPS 120
+
+#ifndef ENABLE_VSYNC
+#define ENABLE_VSYNC 0
+#endif
+
+// A quick debug logging macro
+#ifndef NDEBUG
+#include <stdio.h>
+#define DBG_LOG(fmt, ...) fprintf(stderr, "[DBG] " fmt "\n", ##__VA_ARGS__)
+#else
+#define DBG_LOG(...) ((void)0)
+#endif
+
+void signal_handler(int signum)
+{
+    core.state.should_close = true;
+}
 
 float get_monotonic_time()
 {
@@ -18,6 +36,10 @@ float get_monotonic_time()
 
 int main(int argc, char **argv)
 {
+    // Set up signal handlers for graceful shutdown
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+
     const char *config_path = get_config_path();
     if (config_path)
     {
@@ -61,40 +83,57 @@ int main(int argc, char **argv)
     GLint alpha_location = glGetUniformLocation(shader_program, "c_alpha");
     glUniform1f(alpha_location, config.alpha);
 
+    float quad_vertices[] = {
+        0.0f, 0.0f, // Bottom-left
+        1.0f, 0.0f, // Bottom-right
+        1.0f, 1.0f, // Top-right
+        0.0f, 0.0f, // Bottom-left
+        1.0f, 1.0f, // Top-right
+        0.0f, 1.0f, // Top-left
+    };
+
+    GLuint vao, vbo;
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
     const float frame_time = 1.0f / TARGET_FPS;
     const float start_time = get_monotonic_time();
-    float last_iteration_time = 0.0f;
-    while (true)
+    float last_frame_time = get_monotonic_time();
+
+    core.state.should_close = false;
+    while (!core.state.should_close)
     {
+        float frame_start = get_monotonic_time();
+        float elapsed_time = frame_start - last_frame_time;
+        last_frame_time = frame_start;
+
         begin_drawing();
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glBegin(GL_QUADS);
-        glVertex2f(0.0f, 0.0f);
-        glVertex2f(core.window_size.width, 0.0f);
-        glVertex2f(core.window_size.width, core.window_size.height);
-        glVertex2f(0.0f, core.window_size.height);
-        glEnd();
+        glUniform1f(time_location, frame_start - start_time);
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-        // Update time uniform
-        float current_time = get_monotonic_time() - start_time;
-        glUniform1f(time_location, current_time);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
 
         end_drawing();
 
-        // We want to run at TARGET_FPS
-        current_time = get_monotonic_time() - start_time;
-        float elapsed_time = current_time - last_iteration_time;
-        if (elapsed_time < frame_time)
-        {
-            float time_to_sleep = frame_time - elapsed_time;
-            usleep((useconds_t)(time_to_sleep * 1e6f));
-        }
-        last_iteration_time = current_time;
+        // NOTE: When VSync is disabled, my system runs at ~512 FPS, which is way too fast :D
+        DBG_LOG("Frame Time: %.3f ms (%.1f FPS)", elapsed_time * 1000.0f, 1.0f / elapsed_time);
     }
+
+    glDeleteProgram(shader_program);
     close_platform();
 
     return 0;

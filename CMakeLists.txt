@@ -12,6 +12,7 @@ file(GLOB_RECURSE SOURCES "${SRC_DIR}/*.c")
 add_subdirectory(external/wlrlayer)
 
 option(ENABLE_ASAN "Enable AddressSanitizer" ON)
+option(ENABLE_VSYNC "Enable VSync" ON)
 
 # We need to embed shaders
 find_program(XXD_EXE xxd REQUIRED)
@@ -71,6 +72,10 @@ target_link_libraries(
 if(ENABLE_ASAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(hsnow PRIVATE -fsanitize=address -fno-omit-frame-pointer)
     target_link_options(hsnow PRIVATE -fsanitize=address)
+endif()
+
+if(ENABLE_VSYNC)
+    target_compile_definitions(hsnow PRIVATE ENABLE_VSYNC=1)
 endif()
 
 install(TARGETS hsnow DESTINATION bin)

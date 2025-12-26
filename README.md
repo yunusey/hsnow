@@ -6,7 +6,31 @@
 
 TODO.
 
-## Installation
+## Shaders
+
+Shaders are located in the [`./shaders`](./shaders) directory. At compile time, `cmake` runs `xxd` on all shader files in this directory, producing variables of the form:
+
+* `unsigned char shaders_{name}_{type}[]`
+* `unsigned char shaders_{name}_{type}_len`
+
+These variables are declared as `extern` in [`src/shader.h`](./src/shader.h) and included in [`src/shader.c`](./src/shader.c) so that they are correctly linked at build time.
+
+Currently, `hsnow` does not support loading shaders at runtime—but this is a feature I'd like to add in the future.
+
+## Build Options
+
+When building with CMake, you can configure the following options:
+
+* **`ENABLE_VSYNC`** (default: `ON`): Enable vertical synchronization to cap frame rate at your monitor's refresh rate (typically 60 FPS). Disable this to unlock higher frame rates.
+  ```sh
+  cmake -DENABLE_VSYNC=OFF ..
+  ```
+
+* **`ENABLE_ASAN`** (default: `ON`): Enable AddressSanitizer in Debug builds for memory error detection.
+
+Additionally, you can modify the target FPS by changing the `TARGET_FPS` macro in `src/main.c` (default: 120). Note that VSync must be disabled to achieve frame rates higher than your monitor's refresh rate.
+
+## Roadmapion
 
 ### Nix
 
