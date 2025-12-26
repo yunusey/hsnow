@@ -203,7 +203,6 @@ bool init_platform(const AppConfig *config)
         break;
     case SURFACE_LAYER_TOP:
         layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP;
-        ;
         break;
     case SURFACE_LAYER_OVERLAY:
         layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;
@@ -230,7 +229,11 @@ bool init_platform(const AppConfig *config)
     wl_surface_commit(platform.surface);
     wl_display_roundtrip(platform.display);
 
-    eglSwapInterval(platform.egl.device, 1);
+#ifdef ENABLE_VSYNC
+    eglSwapInterval(platform.egl.device, ENABLE_VSYNC ? 1 : 0);
+#else
+    eglSwapInterval(platform.egl.device, 0);
+#endif
 
     EGLBoolean result =
         eglMakeCurrent(platform.egl.device, platform.egl.surface, platform.egl.surface, platform.egl.context);
